@@ -1,84 +1,55 @@
-const resultElement = document.getElementById("result");
-const lengthElement = document.getElementById("length");
-const uppercaseElement = document.getElementById("uppercase");
-const lowercaseElement = document.getElementById("lowercase");
-const numbersElement = document.getElementById("numbers");
-const symbolsElement = document.getElementById("symbols");
-const generateElement = document.getElementById("generate");
-const clipboardElement = document.getElementById("clipboard");
+const KEY = '3fd2be6f0c70a2a598f084ddfb75487c'
+const API_URL = `https://api.themoviedb.org/3/discover/movie?sort_by=popularity.desc&api_key=${KEY}&page=1`
+const IMG_PATH = 'https://image.tmdb.org/t/p/w1280'
+const SEARCH_API = `https://api.themoviedb.org/3/search/movie?api_key=${KEY}&query=`
 
-// Random functions
-// fromCharCode: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/fromCharCode
-// ASCII codes: https://www.w3schools.com/charsets/ref_html_ascii.asp
-const getRandomLower = () =>
-  String.fromCharCode(Math.floor(Math.random() * 26) + 97);
+const main = document.getElementById('main')
+const form = document.getElementById('form')
+const search = document.getElementById('search')
 
-const getRandomUpper = () =>
-  String.fromCharCode(Math.floor(Math.random() * 26) + 65);
+const getClassByRate = (vote) => {
+  if (vote >= 7.5) return 'green'
+  else if (vote >= 7) return 'orange'
+  else return 'red'
+}
 
-const getRandomNumber = () =>
-  String.fromCharCode(Math.floor(Math.random() * 10) + 48);
+const showMovies = (movies) => {
+  main.innerHTML = ''
+  movies.forEach((movie) => {
+    const { title, poster_path, vote_average, overview } = movie
+    const movieElement = document.createElement('div')
+    movieElement.classList.add('movie')
+    movieElement.innerHTML = `
+    <img
+      src="${IMG_PATH + poster_path}"
+      alt="${title}"
+    />
+    <div class="movie-info">
+      <h3>${title}</h3>
+      <span class="${getClassByRate(vote_average)}">${vote_average}</span>
+    </div>
+    <div class="overview">
+      <h3>Overview</h3>
+      ${overview}
+    </div>
+  `
+    main.appendChild(movieElement)
+  })
+}
 
-const getRandomSymbol = () => {
-  const symbols = "!@#$%^&*(){}[]=<>/,.";
-  return symbols[Math.floor(Math.random() * symbols.length)];
-};
+const getMovies = async (url) => {
+  const res = await fetch(url)
+  const data = await res.json()
+  showMovies(data.results)
+}
 
-const randomFunctions = {
-  lower: getRandomLower,
-  upper: getRandomUpper,
-  number: getRandomSymbol,
-  symbol: getRandomSymbol,
-};
+getMovies(API_URL)
 
-const createNotification = (message) => {
-  const notif = document.createElement("div");
-  notif.classList.add("toast");
-  notif.innerText = message;
-  document.body.appendChild(notif);
-  setTimeout(() => notif.remove(), 3000);
-};
-
-clipboardElement.addEventListener("click", () => {
-  const password = resultElement.innerText;
-  if (!password) return;
-  const textarea = document.createElement("textarea");
-  textarea.value = password;
-  document.body.appendChild(textarea);
-  textarea.select();
-  document.execCommand("copy");
-  textarea.remove();
-  createNotification("Password copied to clipboard!");
-});
-
-generateElement.addEventListener("click", () => {
-  const length = +lengthElement.value;
-  const hasLower = lowercaseElement.checked;
-  const hasUpper = uppercaseElement.checked;
-  const hasNumber = numbersElement.checked;
-  const hasSymbol = symbolsElement.checked;
-  resultElement.innerText = generatePassword(
-    hasLower,
-    hasUpper,
-    hasNumber,
-    hasSymbol,
-    length
-  );
-});
-
-const generatePassword = (lower, upper, number, symbol, length) => {
-  let generatedPassword = "";
-  const typesCount = lower + upper + number + symbol;
-  const typesArr = [{ lower }, { upper }, { number }, { symbol }].filter(
-    (item) => Object.values(item)[0]
-  );
-  if (typesCount === 0) return "";
-  for (let i = 0; i < length; i += typesCount) {
-    typesArr.forEach((type) => {
-      const funcName = Object.keys(type)[0];
-      generatedPassword += randomFunctions[funcName]();
-    });
-  }
-  const finalPassword = generatedPassword.slice(0, length);
-  return finalPassword;
-};
+form.addEventListener('submit', (e) => {
+  e.preventDefault()
+  const searchTerm = search.value
+  if (searchTerm && searchTerm !== '') {
+    getMovies(SEARCH_API + searchTerm)
+    search.value = ''
+  } else history.go(0)
+})
